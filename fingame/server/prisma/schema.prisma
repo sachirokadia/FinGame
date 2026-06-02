@@ -1,0 +1,72 @@
+// Local SQLite database — data stays on your machine (prisma/dev.db)
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  name       String
+  password   String
+  level      Int         @default(1)
+  xp         Int         @default(0)
+  streak         Int         @default(0)
+  tourCompleted  Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  expenses   Expense[]
+  quests     UserQuest[]
+  badges     UserBadge[]
+}
+
+model Expense {
+  id         String   @id @default(cuid())
+  userId     String
+  amount     Float
+  category   String
+  note       String?
+  date       DateTime @default(now())
+  xpAwarded  Int      @default(0)
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Quest {
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  xpReward    Int
+  targetValue Float
+  type        String      // "save", "streak", "limit"
+  userQuests  UserQuest[]
+}
+
+model UserQuest {
+  id        String   @id @default(cuid())
+  userId    String
+  questId   String
+  progress  Float    @default(0)
+  completed Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id])
+  quest     Quest    @relation(fields: [questId], references: [id])
+}
+
+model Badge {
+  id         String      @id @default(cuid())
+  name       String
+  icon       String
+  xpRequired Int
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  earnedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+}

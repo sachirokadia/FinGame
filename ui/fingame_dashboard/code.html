@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FinGame Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&amp;family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+        .glow-indigo {
+            box-shadow: 0 0 20px rgba(192, 193, 255, 0.3);
+        }
+        .glow-teal {
+            box-shadow: 0 0 20px rgba(78, 222, 163, 0.3);
+        }
+        .glass-card {
+            background: rgba(23, 31, 51, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .progress-sparkle {
+            position: relative;
+            overflow: hidden;
+        }
+        .progress-sparkle::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: sparkle 2s infinite;
+        }
+        @keyframes sparkle {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .float-anim {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#4edea3",
+                        "primary": "#c0c1ff",
+                        "surface": "#0b1326",
+                        "on-error": "#690005",
+                        "outline-variant": "#464554",
+                        "surface-tint": "#c0c1ff",
+                        "inverse-on-surface": "#283044",
+                        "primary-fixed": "#e1e0ff",
+                        "on-secondary": "#003824",
+                        "error-container": "#93000a",
+                        "on-secondary-fixed": "#002113",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "inverse-surface": "#dae2fd",
+                        "surface-container-lowest": "#060e20",
+                        "primary-container": "#8083ff",
+                        "on-surface-variant": "#c7c4d7",
+                        "tertiary-container": "#ca8100",
+                        "on-tertiary-fixed": "#2a1700",
+                        "surface-bright": "#31394d",
+                        "surface-container-high": "#222a3d",
+                        "tertiary-fixed": "#ffddb8",
+                        "background": "#0b1326",
+                        "on-background": "#dae2fd",
+                        "error": "#ffb4ab",
+                        "on-tertiary": "#472a00",
+                        "tertiary": "#ffb95f",
+                        "on-secondary-fixed-variant": "#005236",
+                        "on-tertiary-container": "#3e2400",
+                        "on-secondary-container": "#00311f",
+                        "surface-container-highest": "#2d3449",
+                        "on-primary-container": "#0d0096",
+                        "secondary-container": "#00a572",
+                        "secondary": "#4edea3",
+                        "inverse-primary": "#494bd6",
+                        "surface-variant": "#2d3449",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "outline": "#908fa0",
+                        "secondary-fixed": "#6ffbbe",
+                        "on-surface": "#dae2fd",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "surface-container-low": "#131b2e",
+                        "surface-container": "#171f33",
+                        "on-error-container": "#ffdad6",
+                        "surface-dim": "#0b1326",
+                        "on-primary": "#1000a9",
+                        "on-primary-fixed": "#07006c",
+                        "tertiary-fixed-dim": "#ffb95f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "card-padding": "24px",
+                        "stack-gap": "12px",
+                        "container-margin": "20px",
+                        "unit": "4px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Montserrat"],
+                        "display-lg": ["Montserrat"],
+                        "label-caps": ["Inter"],
+                        "title-md": ["Inter"],
+                        "headline-lg-mobile": ["Montserrat"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-32">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-container-margin py-4 bg-surface/70 backdrop-blur-md dark:bg-surface/70 border-b border-white/10 shadow-[0_0_20px_rgba(192,193,255,0.2)]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full border-2 border-secondary p-0.5 glow-teal">
+<img alt="Avatar" class="w-full h-full rounded-full bg-surface-container" data-alt="A high-quality 3D avatar profile picture of a trendy young professional with neon-accented headphones. The lighting is dramatic with teal and violet rim lights against a deep navy blue background. The style is polished, digital art inspired by high-end gaming interfaces and metaverse aesthetics." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiI0o_WZG0NKn0em8P1BXRN30RBc3PCbe-nvFIOtE_Bq2E3LvfNSZO0NuoR_GGFDU_KMkwwls1qe3kY1yPnikHi_Ma0ORigWURhLtYBbDvqheoOFOVMUt8Pjo0OWh4JHbOj56Hj8G4EbdwAcZVmkDcoBLLqpjoIBzt0FmI4SxZKJRc8FrT5Iuu-s8_t_mKHRsz3EOf26SmxSYcfZZIYPoSQH1xmhfhbGzWLwCZc2DQcVMF7j82sKZn4XCsx-Eqz_4fjeD8zITyZpQ"/>
+</div>
+<span class="font-display-lg text-primary tracking-tighter text-[24px]">FinGame</span>
+</div>
+<div class="bg-surface-container-highest px-4 py-1.5 rounded-full flex items-center gap-2 border border-white/10">
+<span class="text-[18px]">🔥</span>
+<span class="font-label-caps text-label-caps text-on-surface">12</span>
+</div>
+</header>
+<main class="pt-24 px-container-margin flex flex-col gap-stack-gap max-w-lg mx-auto md:max-w-4xl md:grid md:grid-cols-12 md:gap-gutter">
+<!-- Energy Tracker (Centerpiece) -->
+<section class="md:col-span-12 flex flex-col items-center py-8">
+<div class="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
+<!-- Outer Ring Glow -->
+<div class="absolute inset-0 rounded-full border-[12px] border-surface-container-highest"></div>
+<!-- Progress Fill (SVG for circular progress) -->
+<svg class="absolute inset-0 w-full h-full transform -rotate-90">
+<circle class="text-secondary drop-shadow-[0_0_12px_rgba(78,222,163,0.6)]" cx="50%" cy="50%" fill="transparent" r="46%" stroke="currentColor" stroke-dasharray="720" stroke-dashoffset="180" stroke-linecap="round" stroke-width="12"></circle>
+</svg>
+<!-- Inner Glass Circle -->
+<div class="w-52 h-52 md:w-64 md:h-64 rounded-full glass-card flex flex-col items-center justify-center text-center p-6 shadow-inner">
+<span class="font-label-caps text-label-caps text-secondary-fixed-dim uppercase tracking-widest">Daily Energy</span>
+<span class="font-display-lg text-on-surface text-[40px] md:text-[52px]">$142.50</span>
+<span class="font-body-lg text-on-surface-variant text-sm">REMAINING</span>
+</div>
+</div>
+</section>
+<!-- Fin the Mascot & Quick Actions -->
+<div class="md:col-span-6 flex flex-col gap-stack-gap">
+<!-- Mascot Card -->
+<div class="glass-card rounded-xl p-card-padding flex gap-4 items-center float-anim border-l-4 border-l-primary">
+<div class="w-16 h-16 flex-shrink-0 bg-primary-container rounded-lg p-1 glow-indigo">
+<img alt="Fin the AI Mascot" data-alt="A cute, friendly 3D robot mascot named Fin with expressive digital eyes and a sleek, white ceramic body. The robot has glowing violet and teal circuits visible. It is floating in a void of deep navy blue, with soft focus glowing particles in the background. The aesthetic is futuristic, helpful, and inviting, matching a high-end fintech app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuALqdHqdiPRW55EmIBd54LRxxY0ZEBU4mXrvZQ0XYYPowrgYUzaEYkpPQZI0rSSCpjjPs9WksqmqXhAa4cLUiQzS1m7theWMZRruyCsK9vdaw7iSvZpiy02lUOIUa7N6Z2dJzYOBYs5IpHtIRg3NU0_rOYl8foMICk8LuFngFb6d37dlRIqVzmoStfUR8gLUXnDrz2qXsVlLPpLKe5I26EFFPoOgDQ1iDewgFmzjXdVulrsz6gdZbx90iFrN32J26JGNz2dtJ5iRLM"/>
+</div>
+<div>
+<h4 class="font-title-md text-title-md text-primary mb-1">Fin says:</h4>
+<p class="font-body-lg text-on-surface text-sm leading-snug">"You saved 5% more than last Tuesday! Level Up soon! 🚀"</p>
+</div>
+</div>
+<!-- Quick Action Buttons -->
+<div class="grid grid-cols-2 gap-4">
+<button class="bg-gradient-to-br from-primary to-secondary text-on-primary p-4 rounded-xl flex flex-col items-center justify-center gap-2 font-label-caps text-label-caps active:scale-95 transition-all shadow-lg glow-indigo">
+<span class="material-symbols-outlined text-[32px]">add_circle</span>
+                    ADD EXPENSE
+                </button>
+<button class="glass-card text-on-surface p-4 rounded-xl flex flex-col items-center justify-center gap-2 font-label-caps text-label-caps active:scale-95 transition-all border border-white/20 hover:bg-white/5">
+<span class="material-symbols-outlined text-[32px]">document_scanner</span>
+                    SCAN RECEIPT
+                </button>
+</div>
+</div>
+<!-- Quest Log -->
+<section class="md:col-span-6 glass-card rounded-xl p-card-padding flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary">military_tech</span>
+                    Quest Log
+                </h3>
+<span class="font-label-caps text-label-caps text-secondary">VIEW ALL</span>
+</div>
+<!-- Savings Goal Quest -->
+<div class="bg-surface-container rounded-lg p-4 border border-white/5">
+<div class="flex justify-between mb-2">
+<span class="font-title-md text-sm text-on-surface">💻 New Laptop Fund</span>
+<span class="font-label-caps text-label-caps text-primary">75%</span>
+</div>
+<div class="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full w-3/4 bg-gradient-to-r from-primary to-secondary-fixed-dim rounded-full progress-sparkle"></div>
+</div>
+<p class="text-[12px] mt-2 text-on-surface-variant font-body-lg italic">$1,200 / $1,600 saved</p>
+</div>
+<!-- Streak Counter -->
+<div class="flex items-center gap-3 bg-error-container/20 p-3 rounded-lg border border-error/20">
+<span class="text-2xl">🔥</span>
+<div>
+<p class="font-label-caps text-label-caps text-error">12 DAYS UNDER BUDGET</p>
+<p class="text-[11px] text-on-surface-variant">Don't break the chain!</p>
+</div>
+</div>
+</section>
+<!-- Recent Transactions -->
+<section class="md:col-span-12 mt-4">
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-4 px-2">Recent Deeds</h3>
+<div class="flex flex-col gap-2">
+<!-- Item 1 -->
+<div class="glass-card flex items-center justify-between p-4 rounded-xl">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-xl">🍔</div>
+<div>
+<p class="font-title-md text-on-surface text-base">Burger Quest</p>
+<p class="font-body-lg text-on-surface-variant text-[12px]">Food &amp; Dining • Today</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-title-md text-error text-base">-$18.40</p>
+<p class="font-label-caps text-label-caps text-secondary text-[10px]">+5 XP</p>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="glass-card flex items-center justify-between p-4 rounded-xl">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-xl">☕</div>
+<div>
+<p class="font-title-md text-on-surface text-base">Mana Potion</p>
+<p class="font-body-lg text-on-surface-variant text-[12px]">Coffee • Yesterday</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-title-md text-error text-base">-$5.50</p>
+<p class="font-label-caps text-label-caps text-secondary text-[10px]">+2 XP</p>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="glass-card flex items-center justify-between p-4 rounded-xl">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-xl">🚗</div>
+<div>
+<p class="font-title-md text-on-surface text-base">Fast Travel</p>
+<p class="font-body-lg text-on-surface-variant text-[12px]">Uber • Dec 12</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-title-md text-error text-base">-$24.00</p>
+<p class="font-label-caps text-label-caps text-secondary text-[10px]">+8 XP</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-end pb-6 pt-2 px-4 bg-surface-container/80 backdrop-blur-xl dark:bg-surface-container/80 border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-secondary-fixed-dim drop-shadow-[0_0_8px_rgba(78,222,163,0.5)]" href="#">
+<span class="material-symbols-outlined text-[28px]">grid_view</span>
+<span class="font-label-caps text-label-caps mt-1">Hub</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-secondary transition-colors" href="#">
+<span class="material-symbols-outlined text-[28px]">military_tech</span>
+<span class="font-label-caps text-label-caps mt-1">Quests</span>
+</a>
+<div class="relative -top-4">
+<button class="w-14 h-14 bg-gradient-to-tr from-primary to-secondary rounded-full flex items-center justify-center text-on-primary shadow-lg glow-indigo active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[32px]">add</span>
+</button>
+</div>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-secondary transition-colors" href="#">
+<span class="material-symbols-outlined text-[28px]">auto_stories</span>
+<span class="font-label-caps text-label-caps mt-1">Story</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-secondary transition-colors" href="#">
+<span class="material-symbols-outlined text-[28px]">leaderboard</span>
+<span class="font-label-caps text-label-caps mt-1">Stats</span>
+</a>
+</nav>
+<script>
+        // Micro-interaction for energy ring pulse
+        const energyRing = document.querySelector('circle');
+        let offset = 180;
+        
+        function pulseRing() {
+            // Simulate minor data fluctuations for visual life
+            const slightVariance = Math.sin(Date.now() / 1000) * 5;
+            energyRing.style.strokeDashoffset = offset + slightVariance;
+            requestAnimationFrame(pulseRing);
+        }
+        pulseRing();
+
+        // Button feedback
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('touchstart', () => {
+                btn.style.transform = 'scale(0.95)';
+            });
+            btn.addEventListener('touchend', () => {
+                btn.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body></html>
