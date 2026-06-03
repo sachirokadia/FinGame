@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 5000;
 
 // Enable CORS for frontend client
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5000", "http://localhost:5005"],
+  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5000", "http://localhost:5005", "https://fingame-front.onrender.com"],
   credentials: true
 }));
 
