@@ -1,6 +1,6 @@
 // Local SQLite database — data stays on your machine (prisma/dev.db)
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
