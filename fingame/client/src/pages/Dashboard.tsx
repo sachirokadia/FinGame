@@ -146,11 +146,12 @@ const Dashboard: React.FC = () => {
 
           {/* Edit budget button */}
           <button
+            type="button"
             onClick={() => setBudgetModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-primary hover:border-primary/30 text-xs font-label-caps transition-all active:scale-95 shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-primary hover:border-primary/30 text-xs font-label-caps transition-all active:scale-95 shrink-0 cursor-pointer select-none z-10 relative"
           >
-            <span className="material-symbols-outlined text-sm">edit</span>
-            Edit Budget
+            <span className="material-symbols-outlined text-sm pointer-events-none">edit</span>
+            <span className="pointer-events-none">Edit Budget</span>
           </button>
         </div>
 
