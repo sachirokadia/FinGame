@@ -168,17 +168,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Daily allowance chip */}
-        {!isOverBudget && (
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high border border-white/10 text-xs">
-              <span className="material-symbols-outlined text-sm text-secondary">today</span>
-              <span className="text-on-surface-variant">Daily allowance:</span>
-              <span className="text-secondary font-bold">{formatCurrency(dailyAllowance)}</span>
-              <span className="text-on-surface-variant">· {daysLeft} days left</span>
-            </div>
-          </div>
-        )}
+
 
         {/* Fin mascot */}
         <p className="text-on-surface-variant text-sm mb-6 flex items-start gap-2">
