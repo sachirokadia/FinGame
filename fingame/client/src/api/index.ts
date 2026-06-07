@@ -38,17 +38,21 @@ export const authAPI = {
 export const userAPI = {
   getProfile: () => api.get("/user/me"),
   completeTour: () => api.post("/user/tour-complete"),
+  getBudget: () => api.get("/user/budget"),
+  updateBudget: (monthlyBudget: number) => api.put("/user/budget", { monthlyBudget }),
 };
 
 export const expensesAPI = {
   getExpenses: () => api.get("/expenses"),
-  addExpense: (data: { amount: number; category: string; note?: string; date?: string }) => api.post("/expenses", data),
+  addExpense: (data: { amount: number; category: string; note?: string; date?: string }) =>
+    api.post("/expenses", data),
   deleteExpense: (id: string) => api.delete(`/expenses/${id}`),
 };
 
 export const questsAPI = {
   getQuests: () => api.get("/quests"),
-  updateQuestProgress: (id: string, progress: number) => api.post(`/quests/${id}/update`, { progress }),
+  updateQuestProgress: (id: string, progress: number) =>
+    api.post(`/quests/${id}/update`, { progress }),
 };
 
 export const badgesAPI = {
@@ -57,6 +61,12 @@ export const badgesAPI = {
 
 export const statsAPI = {
   getWeeklyStats: () => api.get("/stats/weekly"),
+  getMonthlyStats: (year?: number, month?: number) => {
+    const params = new URLSearchParams();
+    if (year) params.append("year", String(year));
+    if (month) params.append("month", String(month));
+    return api.get(`/stats/monthly?${params.toString()}`);
+  },
   getLeaderboard: () => api.get("/stats/leaderboard"),
 };
 

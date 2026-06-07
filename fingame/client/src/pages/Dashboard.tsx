@@ -4,12 +4,19 @@ import { useAuth } from "../context/AuthContext";
 import { expensesAPI, questsAPI } from "../api";
 import { ExpenseItem } from "../components/ExpenseItem";
 import { QuestCard } from "../components/QuestCard";
+import { ProgressBar } from "../components/ui/ProgressBar";
+import BudgetSetupModal from "../components/BudgetSetupModal";
 import type { Expense, QuestData } from "../types";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ApiErrorState } from "../components/ui/ApiErrorState";
-import { DAILY_BUDGET } from "../utils/constants";
-import { getDailyRemaining } from "../utils/budget";
+import {
+  getMonthlySpend,
+  getMonthlyRemaining,
+  getDerivedDailyAllowance,
+  getBudgetPercentUsed,
+} from "../utils/budget";
 import { formatCurrency } from "../utils/format";
+import { MONTH_NAMES } from "../utils/constants";
 
 const Dashboard: React.FC = () => {
   const { user, refreshProfile } = useAuth();
@@ -17,11 +24,19 @@ const Dashboard: React.FC = () => {
   const [quests, setQuests] = useState<QuestData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+
+  const monthlyBudget = user?.monthlyBudget ?? 10000;
+  const now = new Date();
+  const currentMonthName = MONTH_NAMES[now.getMonth()];
 
   const loadData = useCallback(async () => {
     setError(null);
     try {
-      const [expRes, questRes] = await Promise.all([expensesAPI.getExpenses(), questsAPI.getQuests()]);
+      const [expRes, questRes] = await Promise.all([
+        expensesAPI.getExpenses(),
+        questsAPI.getQuests(),
+      ]);
       setExpenses(expRes.data);
       setQuests(questRes.data.filter((q: QuestData) => !q.completed).slice(0, 2));
     } catch {
@@ -48,19 +63,25 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const today = new Date();
-  const remaining = getDailyRemaining(expenses, today);
-  const isOverBudget = remaining < 0;
-  const budgetPct = Math.max(0, Math.round((remaining / DAILY_BUDGET) * 100));
+  // Monthly budget computations
+  const monthlySpent = getMonthlySpend(expenses, now);
+  const monthlyRemaining = getMonthlyRemaining(expenses, monthlyBudget, now);
+  const budgetPct = getBudgetPercentUsed(expenses, monthlyBudget, now);
+  const isOverBudget = monthlyRemaining < 0;
+  const dailyAllowance = getDerivedDailyAllowance(expenses, monthlyBudget, now);
+
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeft = daysInMonth - now.getDate() + 1;
+
   const mascotMessages = isOverBudget
     ? [
-        `Boss fight! You're ${formatCurrency(-remaining)} over today's budget! ⚔️`,
-        `Daily energy depleted — tread carefully, adventurer!`,
+        `Boss fight! You're ${formatCurrency(-monthlyRemaining)} over this month's budget! ⚔️`,
+        `Monthly energy depleted — watch your spending, adventurer!`,
       ]
     : [
-        `You have ${budgetPct}% of your daily energy left — spend wisely!`,
+        `${formatCurrency(dailyAllowance)}/day to stay on track for the rest of ${currentMonthName}!`,
         `Your streak is ${user?.streak ?? 0} days strong — don't break the chain! 🔥`,
-        `${remaining > DAILY_BUDGET * 0.5 ? "Plenty of mana left today!" : "Boss fight ahead — spend wisely!"}`,
+        `${daysLeft} days left this month — ${formatCurrency(monthlyRemaining)} remaining.`,
         `Level ${user?.level ?? 1} adventurer — every deed logged earns XP!`,
       ];
   const mascotMsg = mascotMessages[(user?.level ?? 1) % mascotMessages.length];
@@ -70,7 +91,13 @@ const Dashboard: React.FC = () => {
   if (error && expenses.length === 0 && quests.length === 0) {
     return (
       <main className="pt-24 pb-36 lg:pb-8 px-container-margin max-w-4xl mx-auto lg:max-w-5xl">
-        <ApiErrorState message={error} onRetry={() => { setLoading(true); loadData(); }} />
+        <ApiErrorState
+          message={error}
+          onRetry={() => {
+            setLoading(true);
+            loadData();
+          }}
+        />
       </main>
     );
   }
@@ -80,14 +107,17 @@ const Dashboard: React.FC = () => {
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-error-container/20 border border-error/30 text-error text-sm flex items-center justify-between gap-2">
           <span>{error}</span>
-          <button type="button" onClick={loadData} className="text-xs underline shrink-0">Retry</button>
+          <button type="button" onClick={loadData} className="text-xs underline shrink-0">
+            Retry
+          </button>
         </div>
       )}
 
+      {/* ── Monthly Budget Card ─────────────────────────────────────────────── */}
       <section
         id="tour-daily-energy"
         className={`glass-card p-card-padding rounded-2xl mb-6 relative overflow-hidden ${
-          isOverBudget ? "border border-error/40 glow-shadow-primary" : "glow-teal"
+          isOverBudget ? "border border-error/40" : "glow-teal"
         }`}
       >
         <div
@@ -95,19 +125,70 @@ const Dashboard: React.FC = () => {
             isOverBudget ? "bg-error/15" : "bg-secondary/10"
           }`}
         />
-        <p className="font-label-caps text-label-caps text-on-surface-variant mb-1">Daily Energy</p>
-        <p className={`font-display-lg text-4xl md:text-5xl mb-1 ${isOverBudget ? "text-error" : "text-secondary"}`}>
-          {formatCurrency(remaining)}
-          <span className="text-lg text-on-surface-variant ml-2 font-body-lg">
-            {isOverBudget ? "OVER BUDGET" : "REMAINING"}
-          </span>
-        </p>
+
+        {/* Header row */}
+        <div className="flex items-start justify-between mb-1">
+          <div>
+            <p className="font-label-caps text-label-caps text-on-surface-variant">
+              {currentMonthName} Budget
+            </p>
+            <p
+              className={`font-display-lg text-4xl md:text-5xl mt-1 ${
+                isOverBudget ? "text-error" : "text-secondary"
+              }`}
+            >
+              {formatCurrency(monthlyRemaining)}
+              <span className="text-lg text-on-surface-variant ml-2 font-body-lg">
+                {isOverBudget ? "OVER BUDGET" : "REMAINING"}
+              </span>
+            </p>
+          </div>
+
+          {/* Edit budget button */}
+          <button
+            onClick={() => setBudgetModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-high border border-white/10 text-on-surface-variant hover:text-primary hover:border-primary/30 text-xs font-label-caps transition-all active:scale-95 shrink-0"
+          >
+            <span className="material-symbols-outlined text-sm">edit</span>
+            Edit Budget
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="my-4">
+          <ProgressBar
+            value={Math.min(budgetPct, 100)}
+            max={100}
+            variant={isOverBudget ? "default" : "default"}
+          />
+          <div className="flex justify-between text-xs text-on-surface-variant mt-1.5">
+            <span>{formatCurrency(monthlySpent)} spent</span>
+            <span>{Math.round(budgetPct)}% used</span>
+            <span>of {formatCurrency(monthlyBudget)}</span>
+          </div>
+        </div>
+
+        {/* Daily allowance chip */}
+        {!isOverBudget && (
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high border border-white/10 text-xs">
+              <span className="material-symbols-outlined text-sm text-secondary">today</span>
+              <span className="text-on-surface-variant">Daily allowance:</span>
+              <span className="text-secondary font-bold">{formatCurrency(dailyAllowance)}</span>
+              <span className="text-on-surface-variant">· {daysLeft} days left</span>
+            </div>
+          </div>
+        )}
+
+        {/* Fin mascot */}
         <p className="text-on-surface-variant text-sm mb-6 flex items-start gap-2">
           <span className="material-symbols-outlined text-primary text-lg shrink-0">smart_toy</span>
           <span>
             <strong className="text-primary">Fin says:</strong> &ldquo;{mascotMsg}&rdquo;
           </span>
         </p>
+
+        {/* Quick actions */}
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("open-add-expense"))}
@@ -127,10 +208,14 @@ const Dashboard: React.FC = () => {
         </div>
       </section>
 
+      {/* ── Quest Log ───────────────────────────────────────────────────────── */}
       <section id="tour-quest-log" className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-primary">Quest Log</h2>
-          <Link to="/quests" className="font-label-caps text-label-caps text-secondary hover:text-secondary-fixed-dim transition-colors">
+          <Link
+            to="/quests"
+            className="font-label-caps text-label-caps text-secondary hover:text-secondary-fixed-dim transition-colors"
+          >
             VIEW ALL
           </Link>
         </div>
@@ -138,7 +223,9 @@ const Dashboard: React.FC = () => {
           {quests.length > 0 ? (
             quests.map((q) => <QuestCard key={q.id} data={q} compact />)
           ) : (
-            <p className="text-on-surface-variant text-sm glass-card p-4 rounded-xl">No active quests — visit Quests to start one!</p>
+            <p className="text-on-surface-variant text-sm glass-card p-4 rounded-xl">
+              No active quests — visit Quests to start one!
+            </p>
           )}
         </div>
         {(user?.streak ?? 0) > 0 && (
@@ -148,8 +235,11 @@ const Dashboard: React.FC = () => {
         )}
       </section>
 
+      {/* ── Recent Deeds ────────────────────────────────────────────────────── */}
       <section>
-        <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-4">Recent Deeds</h2>
+        <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-4">
+          Recent Deeds
+        </h2>
         <div className="glass-card p-4 rounded-xl">
           {expenses.length > 0 ? (
             expenses.slice(0, 8).map((e) => (
@@ -162,6 +252,12 @@ const Dashboard: React.FC = () => {
           )}
         </div>
       </section>
+
+      {/* Budget Setup Modal */}
+      <BudgetSetupModal
+        isOpen={budgetModalOpen}
+        onClose={() => setBudgetModalOpen(false)}
+      />
     </main>
   );
 };

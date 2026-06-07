@@ -10,16 +10,28 @@ import {
 import { statsAPI, expensesAPI, badgesAPI } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { GlassCard } from "../components/ui/GlassCard";
+import { ProgressBar } from "../components/ui/ProgressBar";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ApiErrorState } from "../components/ui/ApiErrorState";
 import { EmptyState } from "../components/ui/EmptyState";
 import { formatCurrency } from "../utils/format";
 import type { Expense, LeaderboardPlayer } from "../types";
 
+interface MonthlyStats {
+  monthlyBudget: number;
+  totalSpent: number;
+  remaining: number;
+  percentUsed: number;
+  isOverBudget: boolean;
+  dailyAllowance: number;
+  daysLeft: number;
+}
+
 const StatsPage: React.FC = () => {
   const { user } = useAuth();
   const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
   const [monthlyData, setMonthlyData] = useState<{ month: string; amount: number }[]>([]);
+  const [monthlyStats, setMonthlyStats] = useState<MonthlyStats | null>(null);
   const [badgeCount, setBadgeCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,14 +40,18 @@ const StatsPage: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-      const [lbRes, expRes, badgeRes] = await Promise.all([
+      const [lbRes, expRes, badgeRes, monthlyRes] = await Promise.all([
         statsAPI.getLeaderboard(),
         expensesAPI.getExpenses(),
         badgesAPI.getBadges(),
+        statsAPI.getMonthlyStats(),
       ]);
+
       setLeaderboard(lbRes.data);
       setBadgeCount(badgeRes.data.filter((b: { earned: boolean }) => b.earned).length);
+      setMonthlyStats(monthlyRes.data);
 
+      // Build monthly chart from all expenses
       const expenses: Expense[] = expRes.data;
       const byMonth: Record<string, number> = {};
       expenses.forEach((e) => {
@@ -43,7 +59,7 @@ const StatsPage: React.FC = () => {
         const key = d.toLocaleString("en-US", { month: "short" });
         byMonth[key] = (byMonth[key] || 0) + e.amount;
       });
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
       const chartMonths = months
         .filter((m) => byMonth[m])
         .map((m) => ({ month: m, amount: byMonth[m] }))
@@ -82,16 +98,21 @@ const StatsPage: React.FC = () => {
 
   return (
     <main className="pt-24 pb-36 lg:pb-8 px-container-margin max-w-5xl mx-auto">
-      <h1 className="font-headline-lg text-headline-lg text-primary mb-6">Stats & Leaderboard</h1>
+      <h1 className="font-headline-lg text-headline-lg text-primary mb-6">
+        Stats &amp; Leaderboard
+      </h1>
 
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-error-container/20 border border-error/30 text-error text-sm flex items-center justify-between gap-2">
           <span>{error}</span>
-          <button type="button" onClick={loadData} className="text-xs underline shrink-0">Retry</button>
+          <button type="button" onClick={loadData} className="text-xs underline shrink-0">
+            Retry
+          </button>
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      {/* ── Stat tiles ──────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
           { label: "Level", value: user?.level ?? 1, icon: "star" },
           { label: "Total XP", value: (user?.xp ?? 0).toLocaleString(), icon: "bolt" },
@@ -99,13 +120,60 @@ const StatsPage: React.FC = () => {
           { label: "Badges", value: badgeCount, icon: "workspace_premium" },
         ].map((stat) => (
           <GlassCard key={stat.label} className="text-center py-4">
-            <span className="material-symbols-outlined text-secondary text-2xl mb-1">{stat.icon}</span>
+            <span className="material-symbols-outlined text-secondary text-2xl mb-1">
+              {stat.icon}
+            </span>
             <p className="font-display-lg text-2xl text-primary">{stat.value}</p>
             <p className="font-label-caps text-label-caps text-on-surface-variant">{stat.label}</p>
           </GlassCard>
         ))}
       </div>
 
+      {/* ── Monthly budget snapshot ──────────────────────────────────────── */}
+      {monthlyStats && (
+        <GlassCard className="mb-6">
+          <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+            <div>
+              <p className="font-label-caps text-label-caps text-on-surface-variant mb-1">
+                Monthly Budget
+              </p>
+              <p className="font-display-lg text-3xl text-primary">
+                {formatCurrency(monthlyStats.monthlyBudget)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="font-label-caps text-label-caps text-on-surface-variant mb-1">
+                {monthlyStats.isOverBudget ? "Over Budget" : "Remaining"}
+              </p>
+              <p
+                className={`font-display-lg text-3xl ${
+                  monthlyStats.isOverBudget ? "text-error" : "text-secondary"
+                }`}
+              >
+                {formatCurrency(Math.abs(monthlyStats.remaining))}
+              </p>
+            </div>
+          </div>
+
+          <ProgressBar value={Math.min(monthlyStats.percentUsed, 100)} max={100} />
+
+          <div className="flex justify-between text-xs text-on-surface-variant mt-2 mb-4">
+            <span>{formatCurrency(monthlyStats.totalSpent)} spent</span>
+            <span>{Math.round(monthlyStats.percentUsed)}% of budget used</span>
+            <span>{monthlyStats.daysLeft} days left this month</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm">
+            <span className="material-symbols-outlined text-sm text-secondary">today</span>
+            <span className="text-on-surface-variant">Daily allowance to stay on track:</span>
+            <span className="text-secondary font-semibold">
+              {formatCurrency(monthlyStats.dailyAllowance)}/day
+            </span>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ── Monthly spending chart ───────────────────────────────────────── */}
       {monthlyData.length > 0 ? (
         <GlassCard className="mb-8">
           <h2 className="font-title-md text-title-md text-on-surface mb-4">Monthly Spending</h2>
@@ -118,8 +186,17 @@ const StatsPage: React.FC = () => {
                     <stop offset="100%" stopColor="#4edea3" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="month" tick={{ fill: "#c7c4d7", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#c7c4d7", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: "#c7c4d7", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "#c7c4d7", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip
                   contentStyle={{
                     background: "#171f33",
@@ -128,21 +205,34 @@ const StatsPage: React.FC = () => {
                   }}
                   formatter={(v: number) => [formatCurrency(v), "Spent"]}
                 />
-                <Area type="monotone" dataKey="amount" stroke="#8083ff" fill="url(#areaGrad)" strokeWidth={2} />
+                <Area
+                  type="monotone"
+                  dataKey="amount"
+                  stroke="#8083ff"
+                  fill="url(#areaGrad)"
+                  strokeWidth={2}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </GlassCard>
       ) : (
-        <EmptyState message="No spending data yet — log expenses to see your monthly chart." className="mb-8" />
+        <EmptyState
+          message="No spending data yet — log expenses to see your monthly chart."
+          className="mb-8"
+        />
       )}
 
+      {/* ── Global Leaderboard ───────────────────────────────────────────── */}
       <GlassCard className="overflow-hidden p-0">
         <div className="p-card-padding border-b border-white/10">
           <h2 className="font-title-md text-title-md text-primary">Global Leaderboard</h2>
         </div>
         {leaderboard.length === 0 ? (
-          <EmptyState message="No players on the leaderboard yet." className="border-0 shadow-none" />
+          <EmptyState
+            message="No players on the leaderboard yet."
+            className="border-0 shadow-none"
+          />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -161,7 +251,9 @@ const StatsPage: React.FC = () => {
                     <tr
                       key={player.id}
                       className={`border-b border-white/5 transition-colors ${
-                        player.isCurrentUser ? "bg-primary/10 border-l-2 border-l-primary" : "hover:bg-white/5"
+                        player.isCurrentUser
+                          ? "bg-primary/10 border-l-2 border-l-primary"
+                          : "hover:bg-white/5"
                       }`}
                     >
                       <td className="p-4 font-bold text-tertiary">#{player.rank}</td>
@@ -173,9 +265,13 @@ const StatsPage: React.FC = () => {
                           <span className="font-semibold text-on-surface">{player.name}</span>
                         </div>
                       </td>
-                      <td className="p-4 hidden sm:table-cell text-on-surface-variant">LVL {player.level}</td>
+                      <td className="p-4 hidden sm:table-cell text-on-surface-variant">
+                        LVL {player.level}
+                      </td>
                       <td className="p-4 text-on-surface-variant">{player.xp.toLocaleString()}</td>
-                      <td className="p-4 hidden sm:table-cell text-tertiary">🔥 {player.streak}</td>
+                      <td className="p-4 hidden sm:table-cell text-tertiary">
+                        🔥 {player.streak}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

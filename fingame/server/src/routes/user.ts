@@ -24,6 +24,7 @@ router.get("/me", authMiddleware, async (req: AuthenticatedRequest, res: Respons
         xp: true,
         streak: true,
         tourCompleted: true,
+        monthlyBudget: true,
       },
     });
 
@@ -31,7 +32,6 @@ router.get("/me", authMiddleware, async (req: AuthenticatedRequest, res: Respons
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Get exact level mapping metrics
     const levelInfo = calculateLevel(user.xp);
 
     return res.json({
@@ -61,6 +61,68 @@ router.post("/tour-complete", authMiddleware, async (req: AuthenticatedRequest, 
     return res.json({ success: true });
   } catch (error) {
     console.error("Tour complete error:", error);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+// GET /api/user/budget
+router.get("/budget", authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { monthlyBudget: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json({ monthlyBudget: user.monthlyBudget });
+  } catch (error) {
+    console.error("Get budget error:", error);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+// PUT /api/user/budget
+router.put("/budget", authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user?.id;
+  const { monthlyBudget } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (monthlyBudget === undefined || monthlyBudget === null) {
+    return res.status(400).json({ error: "monthlyBudget is required" });
+  }
+
+  const parsed = parseFloat(monthlyBudget);
+
+  if (isNaN(parsed) || parsed <= 0) {
+    return res.status(400).json({ error: "monthlyBudget must be a positive number" });
+  }
+
+  if (parsed > 10_000_000) {
+    return res.status(400).json({ error: "monthlyBudget cannot exceed ₹1,00,00,000" });
+  }
+
+  try {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { monthlyBudget: parsed },
+      select: { monthlyBudget: true },
+    });
+
+    return res.json({ monthlyBudget: updated.monthlyBudget, message: "Budget updated successfully" });
+  } catch (error) {
+    console.error("Update budget error:", error);
     return res.status(500).json({ error: "Something went wrong" });
   }
 });

@@ -17,7 +17,7 @@ async function main() {
     { name: "Vault Builder", description: "Save ₹500 in your Emergency Fund", xpReward: 500, targetValue: 500, type: "save" },
     { name: "Home Chef Streak", description: "No Dining Out for 3 days", xpReward: 200, targetValue: 3, type: "streak" },
     { name: "Budget Boss", description: "Under limit for 7 consecutive days!", xpReward: 500, targetValue: 7, type: "limit" },
-    { name: "Frugal Week", description: "Spend less than ₹150 total this week", xpReward: 300, targetValue: 150, type: "limit" },
+    { name: "Frugal Week", description: "Spend less than 50% of your weekly budget", xpReward: 300, targetValue: 150, type: "limit" },
     { name: "First Save", description: "Log your first expense or saving milestone", xpReward: 100, targetValue: 1, type: "save" },
   ];
 
@@ -44,7 +44,7 @@ async function main() {
 
   const hashedPassword = await bcrypt.hash("password123", 10);
 
-  // Demo hero: level 14 = 6500–6999 XP
+  // Demo hero — monthlyBudget set to ₹30,000
   const demoUser = await prisma.user.create({
     data: {
       email: "hero@fingame.com",
@@ -54,13 +54,14 @@ async function main() {
       xp: 6750,
       streak: 12,
       tourCompleted: true,
+      monthlyBudget: 30000,
     },
   });
 
   const competitors = [
-    { email: "sarah@fingame.com", name: "Sarah J.", level: 42, xp: 20800, streak: 15 },
-    { email: "mike@fingame.com", name: "Mike T.", level: 28, xp: 14200, streak: 8 },
-    { email: "elena@fingame.com", name: "Elena R.", level: 20, xp: 10100, streak: 5 },
+    { email: "sarah@fingame.com", name: "Sarah J.", level: 42, xp: 20800, streak: 15, monthlyBudget: 25000 },
+    { email: "mike@fingame.com", name: "Mike T.", level: 28, xp: 14200, streak: 8, monthlyBudget: 20000 },
+    { email: "elena@fingame.com", name: "Elena R.", level: 20, xp: 10100, streak: 5, monthlyBudget: 15000 },
   ];
 
   for (const c of competitors) {
@@ -76,12 +77,18 @@ async function main() {
   twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
   const fourDaysAgo = new Date(today);
   fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+  const tenDaysAgo = new Date(today);
+  tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+  const fifteenDaysAgo = new Date(today);
+  fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
 
   const sampleExpenses = [
-    { userId: demoUser.id, amount: 18.4, category: "🍔 Food", note: "Burger Quest", date: today, xpAwarded: 5 },
-    { userId: demoUser.id, amount: 5.5, category: "☕ Coffee", note: "Mana Potion", date: yesterday, xpAwarded: 2 },
-    { userId: demoUser.id, amount: 24.0, category: "🚗 Transport", note: "Fast Travel", date: fourDaysAgo, xpAwarded: 8 },
-    { userId: demoUser.id, amount: 12.0, category: "🎮 Gaming", note: "Side Quest", date: twoDaysAgo, xpAwarded: 4 },
+    { userId: demoUser.id, amount: 180, category: "🍔 Food", note: "Burger Quest", date: today, xpAwarded: 5 },
+    { userId: demoUser.id, amount: 55, category: "☕ Coffee", note: "Mana Potion", date: yesterday, xpAwarded: 2 },
+    { userId: demoUser.id, amount: 240, category: "🚗 Transport", note: "Fast Travel", date: fourDaysAgo, xpAwarded: 8 },
+    { userId: demoUser.id, amount: 120, category: "🎮 Gaming", note: "Side Quest", date: twoDaysAgo, xpAwarded: 4 },
+    { userId: demoUser.id, amount: 650, category: "🛍️ Shopping", note: "Gear upgrade", date: tenDaysAgo, xpAwarded: 5 },
+    { userId: demoUser.id, amount: 320, category: "⚡ Utilities", note: "Monthly bills", date: fifteenDaysAgo, xpAwarded: 10 },
   ];
 
   for (const exp of sampleExpenses) {
@@ -108,10 +115,11 @@ async function main() {
     }
   }
 
+  const competitorUsers = await prisma.user.findMany({
+    where: { email: { in: competitors.map((c) => c.email) } },
+  });
+
   for (const quest of dbQuests) {
-    const competitorUsers = await prisma.user.findMany({
-      where: { email: { in: competitors.map((c) => c.email) } },
-    });
     for (const u of competitorUsers) {
       const exists = await prisma.userQuest.findFirst({
         where: { userId: u.id, questId: quest.id },

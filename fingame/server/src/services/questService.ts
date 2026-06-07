@@ -1,6 +1,5 @@
 import { calculateLevel } from "./xpService.js";
 import { prisma } from "../lib/prisma.js";
-const DAILY_BUDGET = 1000;
 
 function isFoodCategory(category: string): boolean {
   const c = category.toLowerCase();
@@ -28,13 +27,17 @@ function getDailySpendMap(expenses: { amount: number; date: Date }[]): Map<strin
   return map;
 }
 
-function countConsecutiveUnderBudgetDays(dailySpend: Map<string, number>, fromDate: Date): number {
+function countConsecutiveUnderBudgetDays(
+  dailySpend: Map<string, number>,
+  fromDate: Date,
+  dailyBudget: number
+): number {
   let count = 0;
   const cursor = startOfDay(fromDate);
   for (let i = 0; i < 365; i++) {
     const key = cursor.toISOString();
     const spent = dailySpend.get(key) ?? 0;
-    if (spent > 0 && spent <= DAILY_BUDGET) {
+    if (spent > 0 && spent <= dailyBudget) {
       count++;
       cursor.setDate(cursor.getDate() - 1);
     } else if (spent === 0) {
@@ -94,6 +97,15 @@ async function completeQuestAndAwardXp(
 
 export async function evaluateQuestsForUser(userId: string) {
   try {
+    // Fetch user's monthlyBudget so quest logic can derive a daily budget
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { monthlyBudget: true },
+    });
+
+    // Derive a daily budget from the monthly budget (averaged over 30 days)
+    const dailyBudget = user ? user.monthlyBudget / 30 : 1000;
+
     const userQuests = await prisma.userQuest.findMany({
       where: { userId, completed: false },
       include: { quest: true },
@@ -111,7 +123,7 @@ export async function evaluateQuestsForUser(userId: string) {
       .filter((e) => startOfDay(new Date(e.date)) >= weekStart)
       .reduce((sum, e) => sum + e.amount, 0);
 
-    const underBudgetStreak = countConsecutiveUnderBudgetDays(dailySpend, today);
+    const underBudgetStreak = countConsecutiveUnderBudgetDays(dailySpend, today, dailyBudget);
     const noFoodStreak = countConsecutiveNoFoodDays(expenses, today);
     const totalExpenseCount = expenses.length;
     const latestExpense = expenses[0];
@@ -147,7 +159,7 @@ export async function evaluateQuestsForUser(userId: string) {
             }
           }
           const savedFromBudget = Array.from(dailySpend.entries()).reduce((sum, [, spent]) => {
-            return sum + Math.max(0, DAILY_BUDGET - spent);
+            return sum + Math.max(0, dailyBudget - spent);
           }, 0);
           progressUpdate = Math.max(progressUpdate, Math.min(savedFromBudget, quest.targetValue));
           isCompleted = progressUpdate >= quest.targetValue;
@@ -159,8 +171,11 @@ export async function evaluateQuestsForUser(userId: string) {
           break;
 
         case "Frugal Week":
+          // Scale the frugal week target relative to the user's weekly budget
+          const weeklyBudget = dailyBudget * 7;
+          const frugalTarget = Math.min(quest.targetValue, weeklyBudget * 0.5);
           progressUpdate = weeklySpend;
-          isCompleted = weeklySpend > 0 && weeklySpend <= quest.targetValue;
+          isCompleted = weeklySpend > 0 && weeklySpend <= frugalTarget;
           break;
 
         default:

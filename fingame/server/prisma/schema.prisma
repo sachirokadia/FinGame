@@ -9,18 +9,19 @@ generator client {
 }
 
 model User {
-  id         String      @id @default(cuid())
-  email      String      @unique
-  name       String
-  password   String
-  level      Int         @default(1)
-  xp         Int         @default(0)
-  streak         Int         @default(0)
-  tourCompleted  Boolean     @default(false)
-  createdAt      DateTime    @default(now())
-  expenses   Expense[]
-  quests     UserQuest[]
-  badges     UserBadge[]
+  id            String      @id @default(cuid())
+  email         String      @unique
+  name          String
+  password      String
+  level         Int         @default(1)
+  xp            Int         @default(0)
+  streak        Int         @default(0)
+  tourCompleted Boolean     @default(false)
+  monthlyBudget Float       @default(10000)
+  createdAt     DateTime    @default(now())
+  expenses      Expense[]
+  quests        UserQuest[]
+  badges        UserBadge[]
 }
 
 model Expense {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { expensesAPI } from "../api";
 import { EXPENSE_CATEGORIES } from "../utils/constants";
-import { getDailyRemaining } from "../utils/budget";
+import { getMonthlyRemaining, getDerivedDailyAllowance } from "../utils/budget";
 import { formatCurrency } from "../utils/format";
 import type { Expense } from "../types";
 
@@ -12,7 +12,7 @@ interface AddExpenseModalProps {
 }
 
 const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) => {
-  const { showXPToast, refreshProfile } = useAuth();
+  const { user, showXPToast, refreshProfile } = useAuth();
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0].value);
   const [note, setNote] = useState("");
@@ -21,6 +21,8 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) =>
   const [error, setError] = useState("");
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
+  const monthlyBudget = user?.monthlyBudget ?? 10000;
+
   useEffect(() => {
     if (!isOpen) return;
     setError("");
@@ -28,15 +30,18 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) =>
       .getExpenses()
       .then((res) => setExpenses(res.data))
       .catch(() => setExpenses([]));
-  }, [isOpen, date]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const remaining = getDailyRemaining(expenses, date);
+  const now = new Date();
+  const monthlyRemaining = getMonthlyRemaining(expenses, monthlyBudget, now);
+  const dailyAllowance = getDerivedDailyAllowance(expenses, monthlyBudget, now);
+
   const parsed = parseFloat(amount);
-  const hasValidAmount = amount && !Number.isNaN(parsed) && parsed > 0;
-  const projectedRemaining = hasValidAmount ? remaining - parsed : remaining;
-  const wouldExceedBudget = hasValidAmount && projectedRemaining < 0;
+  const hasValidAmount = amount !== "" && !isNaN(parsed) && parsed > 0;
+  const projectedMonthlyRemaining = hasValidAmount ? monthlyRemaining - parsed : monthlyRemaining;
+  const wouldExceedBudget = hasValidAmount && projectedMonthlyRemaining < 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +60,10 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) =>
         date,
       });
       const { xpAwarded, leveledUp } = res.data;
-      showXPToast(xpAwarded, leveledUp ? `+${xpAwarded} XP — LEVEL UP! ⚡` : `+${xpAwarded} XP ⚡`);
+      showXPToast(
+        xpAwarded,
+        leveledUp ? `+${xpAwarded} XP — LEVEL UP! ⚡` : `+${xpAwarded} XP ⚡`
+      );
       await refreshProfile();
       window.dispatchEvent(new CustomEvent("expense-added"));
       setAmount("");
@@ -88,32 +96,47 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) =>
           </button>
         </div>
 
+        {/* Monthly budget status */}
         <div
           className={`mb-5 px-4 py-3 rounded-xl border text-sm ${
-            remaining < 0
+            monthlyRemaining < 0
               ? "bg-error-container/20 border-error/30 text-error"
               : "bg-surface-container-high border-white/10 text-on-surface-variant"
           }`}
         >
-          <span className="font-label-caps text-label-caps block text-xs mb-1">Daily energy left</span>
-          <span className={`font-semibold ${remaining < 0 ? "text-error" : "text-secondary"}`}>
-            {formatCurrency(remaining)}
+          <span className="font-label-caps text-label-caps block text-xs mb-1">
+            Monthly budget remaining
+          </span>
+          <span
+            className={`font-semibold text-base ${
+              monthlyRemaining < 0 ? "text-error" : "text-secondary"
+            }`}
+          >
+            {formatCurrency(monthlyRemaining)}
+          </span>
+          <span className="block text-xs mt-0.5 text-on-surface-variant">
+            Daily allowance: {formatCurrency(dailyAllowance)}/day
           </span>
           {hasValidAmount && (
             <span className="block mt-1 text-xs">
               After this deed:{" "}
               <span className={wouldExceedBudget ? "text-error font-semibold" : "text-on-surface"}>
-                {formatCurrency(projectedRemaining)}
+                {formatCurrency(projectedMonthlyRemaining)}
               </span>
             </span>
           )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Amount */}
           <div className="text-center">
-            <label className="font-label-caps text-label-caps text-on-surface-variant block mb-2">Amount</label>
+            <label className="font-label-caps text-label-caps text-on-surface-variant block mb-2">
+              Amount
+            </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-on-surface-variant">₹</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-on-surface-variant">
+                ₹
+              </span>
               <input
                 type="number"
                 step="0.01"
@@ -134,8 +157,11 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) =>
             </div>
           </div>
 
+          {/* Category */}
           <div>
-            <span className="font-label-caps text-label-caps text-on-surface-variant block mb-2">Category</span>
+            <span className="font-label-caps text-label-caps text-on-surface-variant block mb-2">
+              Category
+            </span>
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
               {EXPENSE_CATEGORIES.map((cat) => (
                 <button
@@ -155,8 +181,12 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) =>
             </div>
           </div>
 
+          {/* Note */}
           <div>
-            <label htmlFor="note" className="font-label-caps text-label-caps text-on-surface-variant block mb-2">
+            <label
+              htmlFor="note"
+              className="font-label-caps text-label-caps text-on-surface-variant block mb-2"
+            >
               Note (optional)
             </label>
             <input
@@ -169,8 +199,12 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) =>
             />
           </div>
 
+          {/* Date */}
           <div>
-            <label htmlFor="date" className="font-label-caps text-label-caps text-on-surface-variant block mb-2">
+            <label
+              htmlFor="date"
+              className="font-label-caps text-label-caps text-on-surface-variant block mb-2"
+            >
               Date
             </label>
             <input
@@ -184,11 +218,16 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClose }) =>
 
           {wouldExceedBudget && !error && (
             <p className="text-tertiary text-sm bg-tertiary/10 border border-tertiary/30 px-3 py-2 rounded-lg">
-              Boss fight! This will put you at {formatCurrency(projectedRemaining)} for the day.
+              Boss fight! This will put you {formatCurrency(-projectedMonthlyRemaining)} over your
+              monthly budget.
             </p>
           )}
 
-          {error && <p className="text-error text-sm bg-error-container/30 px-3 py-2 rounded-lg">{error}</p>}
+          {error && (
+            <p className="text-error text-sm bg-error-container/30 px-3 py-2 rounded-lg">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"

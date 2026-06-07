@@ -11,6 +11,7 @@ interface UserProfile {
   xpInCurrentLevel: number;
   xpForNextLevel: number;
   tourCompleted?: boolean;
+  monthlyBudget: number;
 }
 
 interface AuthContextType {
@@ -23,6 +24,7 @@ interface AuthContextType {
   logout: () => void;
   refreshProfile: () => Promise<void>;
   completeTour: () => Promise<void>;
+  updateBudget: (monthlyBudget: number) => Promise<void>;
   showXPToast: (xp: number, message?: string) => void;
   xpToast: { visible: boolean; xp: number; message?: string } | null;
   clearAuthError: () => void;
@@ -115,6 +117,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const updateBudget = async (monthlyBudget: number) => {
+    try {
+      await userAPI.updateBudget(monthlyBudget);
+      setUser((prev) => (prev ? { ...prev, monthlyBudget } : null));
+    } catch {
+      throw new Error("Failed to update budget. Please try again.");
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -127,6 +138,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logout,
         refreshProfile,
         completeTour,
+        updateBudget,
         showXPToast,
         xpToast,
         clearAuthError,
