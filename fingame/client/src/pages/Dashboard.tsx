@@ -121,7 +121,7 @@ const Dashboard: React.FC = () => {
         }`}
       >
         <div
-          className={`absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl -mr-10 -mt-10 ${
+          className={`absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none ${
             isOverBudget ? "bg-error/15" : "bg-secondary/10"
           }`}
         />
