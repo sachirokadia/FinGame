@@ -88,7 +88,7 @@ const BudgetSetupModal: React.FC<BudgetSetupModalProps> = ({ isOpen, onClose }) 
               </span>
               <input
                 type="number"
-                step="100"
+                step="any"
                 min="1"
                 value={amount}
                 onChange={(e) => {
@@ -141,10 +141,6 @@ const BudgetSetupModal: React.FC<BudgetSetupModalProps> = ({ isOpen, onClose }) 
               <div className="flex justify-between text-sm">
                 <span className="text-on-surface-variant">Daily allowance</span>
                 <span className="text-secondary font-semibold">{formatCurrency(dailyPreview)}/day</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-on-surface-variant">Per week (avg)</span>
-                <span className="text-on-surface font-semibold">{formatCurrency((parsed / 52) * 7 / 12 * 52)}</span>
               </div>
             </div>
           )}
