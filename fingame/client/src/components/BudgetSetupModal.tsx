@@ -24,10 +24,7 @@ const BudgetSetupModal: React.FC<BudgetSetupModalProps> = ({ isOpen, onClose }) 
   const parsed = parseFloat(amount);
   const isValid = !isNaN(parsed) && parsed > 0;
 
-  // Derived daily allowance preview
-  const today = new Date();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const dailyPreview = isValid ? parsed / daysInMonth : 0;
+  // No daily preview needed
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,8 +136,8 @@ const BudgetSetupModal: React.FC<BudgetSetupModalProps> = ({ isOpen, onClose }) 
                 <span className="text-primary font-semibold">{formatCurrency(parsed)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-on-surface-variant">Daily allowance</span>
-                <span className="text-secondary font-semibold">{formatCurrency(dailyPreview)}/day</span>
+                <span className="text-on-surface-variant">Per week (avg)</span>
+                <span className="text-on-surface font-semibold">{formatCurrency(parsed / 4.33)}</span>
               </div>
             </div>
           )}
