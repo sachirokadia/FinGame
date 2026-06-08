@@ -2,33 +2,16 @@ import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
+export interface LoginCredentials { email: string; password: string; }
+export interface RegisterCredentials { name: string; email: string; password: string; }
 
-export interface RegisterCredentials {
-  name: string;
-  email: string;
-  password: string;
-}
-
-const api = axios.create({
-  baseURL: API_BASE,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+const api = axios.create({ baseURL: API_BASE, headers: { "Content-Type": "application/json" } });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("fingame_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+}, (error) => Promise.reject(error));
 
 export const authAPI = {
   login: (data: LoginCredentials) => api.post("/auth/login", data),
@@ -40,19 +23,31 @@ export const userAPI = {
   completeTour: () => api.post("/user/tour-complete"),
   getBudget: () => api.get("/user/budget"),
   updateBudget: (monthlyBudget: number) => api.put("/user/budget", { monthlyBudget }),
+  getBudgetHistory: () => api.get("/user/budget-history"),
 };
 
 export const expensesAPI = {
   getExpenses: () => api.get("/expenses"),
   addExpense: (data: { amount: number; category: string; note?: string; date?: string }) =>
     api.post("/expenses", data),
+  editExpense: (id: string, data: { amount?: number; category?: string; note?: string; date?: string }) =>
+    api.patch(`/expenses/${id}`, data),
   deleteExpense: (id: string) => api.delete(`/expenses/${id}`),
+};
+
+export const recurringAPI = {
+  getRecurring: () => api.get("/recurring"),
+  addRecurring: (data: { amount: number; category: string; note?: string; dayOfMonth: number }) =>
+    api.post("/recurring", data),
+  updateRecurring: (id: string, data: Partial<{ amount: number; category: string; note: string; dayOfMonth: number; active: boolean }>) =>
+    api.patch(`/recurring/${id}`, data),
+  deleteRecurring: (id: string) => api.delete(`/recurring/${id}`),
+  processRecurring: () => api.post("/recurring/process"),
 };
 
 export const questsAPI = {
   getQuests: () => api.get("/quests"),
-  updateQuestProgress: (id: string, progress: number) =>
-    api.post(`/quests/${id}/update`, { progress }),
+  updateQuestProgress: (id: string, progress: number) => api.post(`/quests/${id}/update`, { progress }),
 };
 
 export const badgesAPI = {

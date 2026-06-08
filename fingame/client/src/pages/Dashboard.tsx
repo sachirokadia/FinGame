@@ -1,11 +1,15 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { expensesAPI, questsAPI } from "../api";
+import { expensesAPI, questsAPI, recurringAPI } from "../api";
 import { ExpenseItem } from "../components/ExpenseItem";
 import { QuestCard } from "../components/QuestCard";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import BudgetSetupModal from "../components/BudgetSetupModal";
+import BudgetHistoryModal from "../components/BudgetHistoryModal";
+import EditExpenseModal from "../components/EditExpenseModal";
+import RecurringExpensesModal from "../components/RecurringExpensesModal";
+import SpendingAlert from "../components/SpendingAlert";
 import type { Expense, QuestData } from "../types";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ApiErrorState } from "../components/ui/ApiErrorState";
@@ -24,7 +28,12 @@ const Dashboard: React.FC = () => {
   const [quests, setQuests] = useState<QuestData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Modals
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [recurringModalOpen, setRecurringModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const monthlyBudget = user?.monthlyBudget ?? 10000;
   const now = new Date();
@@ -46,6 +55,11 @@ const Dashboard: React.FC = () => {
     }
   }, []);
 
+  // Process recurring expenses on load
+  useEffect(() => {
+    recurringAPI.processRecurring().catch(() => {});
+  }, []);
+
   useEffect(() => {
     loadData();
     const handler = () => loadData();
@@ -61,6 +75,11 @@ const Dashboard: React.FC = () => {
     } catch {
       setError("Failed to delete expense. Please try again.");
     }
+  };
+
+  const handleEditSaved = async () => {
+    await refreshProfile();
+    await loadData();
   };
 
   // Monthly budget computations
@@ -91,13 +110,7 @@ const Dashboard: React.FC = () => {
   if (error && expenses.length === 0 && quests.length === 0) {
     return (
       <main className="pt-24 pb-36 lg:pb-8 px-container-margin max-w-4xl mx-auto lg:max-w-5xl">
-        <ApiErrorState
-          message={error}
-          onRetry={() => {
-            setLoading(true);
-            loadData();
-          }}
-        />
+        <ApiErrorState message={error} onRetry={() => { setLoading(true); loadData(); }} />
       </main>
     );
   }
@@ -107,36 +120,31 @@ const Dashboard: React.FC = () => {
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-error-container/20 border border-error/30 text-error text-sm flex items-center justify-between gap-2">
           <span>{error}</span>
-          <button type="button" onClick={loadData} className="text-xs underline shrink-0">
-            Retry
-          </button>
+          <button type="button" onClick={loadData} className="text-xs underline shrink-0">Retry</button>
         </div>
       )}
 
-      {/* ── Monthly Budget Card ─────────────────────────────────────────────── */}
+      {/* ── Spending Alert Banner ─────────────────────────────────────────── */}
+      <SpendingAlert
+        percentUsed={budgetPct}
+        monthlyBudget={monthlyBudget}
+        spent={monthlySpent}
+      />
+
+      {/* ── Monthly Budget Card ───────────────────────────────────────────── */}
       <section
         id="tour-daily-energy"
         className={`glass-card p-card-padding rounded-2xl mb-6 relative overflow-hidden ${
           isOverBudget ? "border border-error/40" : "glow-teal"
         }`}
       >
-        <div
-          className={`absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none ${
-            isOverBudget ? "bg-error/15" : "bg-secondary/10"
-          }`}
-        />
+        <div className={`absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none ${isOverBudget ? "bg-error/15" : "bg-secondary/10"}`} />
 
         {/* Header row */}
         <div className="flex items-start justify-between mb-1">
           <div>
-            <p className="font-label-caps text-label-caps text-on-surface-variant">
-              {currentMonthName} Budget
-            </p>
-            <p
-              className={`font-display-lg text-4xl md:text-5xl mt-1 ${
-                isOverBudget ? "text-error" : "text-secondary"
-              }`}
-            >
+            <p className="font-label-caps text-label-caps text-on-surface-variant">{currentMonthName} Budget</p>
+            <p className={`font-display-lg text-4xl md:text-5xl mt-1 ${isOverBudget ? "text-error" : "text-secondary"}`}>
               {formatCurrency(monthlyRemaining)}
               <span className="text-lg text-on-surface-variant ml-2 font-body-lg">
                 {isOverBudget ? "OVER BUDGET" : "REMAINING"}
@@ -157,11 +165,7 @@ const Dashboard: React.FC = () => {
 
         {/* Progress bar */}
         <div className="my-4">
-          <ProgressBar
-            value={Math.min(budgetPct, 100)}
-            max={100}
-            variant={isOverBudget ? "default" : "default"}
-          />
+          <ProgressBar value={Math.min(budgetPct, 100)} max={100} />
           <div className="flex justify-between text-xs text-on-surface-variant mt-1.5">
             <span>{formatCurrency(monthlySpent)} spent</span>
             <span>{Math.round(budgetPct)}% used</span>
@@ -169,14 +173,10 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-
-
         {/* Fin mascot */}
         <p className="text-on-surface-variant text-sm mb-6 flex items-start gap-2">
           <span className="material-symbols-outlined text-primary text-lg shrink-0">smart_toy</span>
-          <span>
-            <strong className="text-primary">Fin says:</strong> &ldquo;{mascotMsg}&rdquo;
-          </span>
+          <span><strong className="text-primary">Fin says:</strong> &ldquo;{mascotMsg}&rdquo;</span>
         </p>
 
         {/* Quick actions */}
@@ -188,10 +188,14 @@ const Dashboard: React.FC = () => {
             <span className="material-symbols-outlined text-secondary">add</span>
             ADD EXPENSE
           </button>
-          <span
-            title="Coming soon"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high border border-white/10 text-on-surface-variant font-label-caps text-label-caps opacity-50 cursor-not-allowed"
+          <button
+            onClick={() => setRecurringModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high border border-white/10 text-on-surface font-label-caps text-label-caps hover:border-secondary/50 active:scale-95 transition-all"
           >
+            <span className="material-symbols-outlined text-secondary">repeat</span>
+            RECURRING
+          </button>
+          <span title="Coming soon" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high border border-white/10 text-on-surface-variant font-label-caps text-label-caps opacity-50 cursor-not-allowed">
             <span className="material-symbols-outlined">document_scanner</span>
             SCAN RECEIPT
             <span className="text-[9px] normal-case font-normal">(soon)</span>
@@ -199,25 +203,17 @@ const Dashboard: React.FC = () => {
         </div>
       </section>
 
-      {/* ── Quest Log ───────────────────────────────────────────────────────── */}
+      {/* ── Quest Log ─────────────────────────────────────────────────────── */}
       <section id="tour-quest-log" className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-primary">Quest Log</h2>
-          <Link
-            to="/quests"
-            className="font-label-caps text-label-caps text-secondary hover:text-secondary-fixed-dim transition-colors"
-          >
-            VIEW ALL
-          </Link>
+          <Link to="/quests" className="font-label-caps text-label-caps text-secondary hover:text-secondary-fixed-dim transition-colors">VIEW ALL</Link>
         </div>
         <div className="grid gap-3">
-          {quests.length > 0 ? (
-            quests.map((q) => <QuestCard key={q.id} data={q} compact />)
-          ) : (
-            <p className="text-on-surface-variant text-sm glass-card p-4 rounded-xl">
-              No active quests — visit Quests to start one!
-            </p>
-          )}
+          {quests.length > 0
+            ? quests.map((q) => <QuestCard key={q.id} data={q} compact />)
+            : <p className="text-on-surface-variant text-sm glass-card p-4 rounded-xl">No active quests — visit Quests to start one!</p>
+          }
         </div>
         {(user?.streak ?? 0) > 0 && (
           <p className="text-center text-tertiary text-xs font-bold mt-4 streak-pulse">
@@ -226,28 +222,43 @@ const Dashboard: React.FC = () => {
         )}
       </section>
 
-      {/* ── Recent Deeds ────────────────────────────────────────────────────── */}
+      {/* ── Recent Deeds ──────────────────────────────────────────────────── */}
       <section>
-        <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-4">
-          Recent Deeds
-        </h2>
+        <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-4">Recent Deeds</h2>
         <div className="glass-card p-4 rounded-xl">
-          {expenses.length > 0 ? (
-            expenses.slice(0, 8).map((e) => (
-              <ExpenseItem key={e.id} expense={e} onDelete={handleDelete} />
-            ))
-          ) : (
-            <p className="text-on-surface-variant text-center py-8 text-sm">
-              No deeds logged yet. Tap + to log your first expense!
-            </p>
-          )}
+          {expenses.length > 0
+            ? expenses.slice(0, 8).map((e) => (
+                <ExpenseItem
+                  key={e.id}
+                  expense={e}
+                  onDelete={handleDelete}
+                  onEdit={(exp) => setEditingExpense(exp)}
+                />
+              ))
+            : <p className="text-on-surface-variant text-center py-8 text-sm">No deeds logged yet. Tap + to log your first expense!</p>
+          }
         </div>
       </section>
 
-      {/* Budget Setup Modal */}
+      {/* ── Modals ────────────────────────────────────────────────────────── */}
       <BudgetSetupModal
         isOpen={budgetModalOpen}
         onClose={() => setBudgetModalOpen(false)}
+        onViewHistory={() => setHistoryModalOpen(true)}
+      />
+      <BudgetHistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        currentBudget={monthlyBudget}
+      />
+      <RecurringExpensesModal
+        isOpen={recurringModalOpen}
+        onClose={() => { setRecurringModalOpen(false); loadData(); }}
+      />
+      <EditExpenseModal
+        expense={editingExpense}
+        onClose={() => setEditingExpense(null)}
+        onSaved={handleEditSaved}
       />
     </main>
   );
