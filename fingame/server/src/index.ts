@@ -9,6 +9,7 @@ import questRoutes from "./routes/quests.js";
 import badgeRoutes from "./routes/badges.js";
 import statsRoutes from "./routes/stats.js";
 import recurringRoutes from "./routes/recurring.js";
+import categoryBudgetRoutes from "./routes/categoryBudgets.js";
 import { prisma } from "./lib/prisma.js";
 
 dotenv.config();
@@ -17,10 +18,10 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5000", "http://localhost:5005", "https://fingame-front.onrender.com"],
-  credentials: true
+  origin: ["http://localhost:5173","http://localhost:5174","http://localhost:5000","http://localhost:5005","https://fingame-front.onrender.com"],
+  credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // increased for receipt images
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
@@ -29,6 +30,7 @@ app.use("/api/quests", questRoutes);
 app.use("/api/badges", badgeRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/recurring", recurringRoutes);
+app.use("/api/category-budgets", categoryBudgetRoutes);
 
 app.get("/health", async (_req, res) => {
   try {
@@ -39,15 +41,11 @@ app.get("/health", async (_req, res) => {
   }
 });
 
-app.get("/", (_req, res) => {
-  res.send("FinGame RPG expense tracker API is running! 🚀");
-});
+app.get("/", (_req, res) => res.send("FinGame API running 🚀"));
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("Server error:", err);
-  res.status(500).json({ error: "An unexpected error occurred on the server" });
+  res.status(500).json({ error: "An unexpected error occurred" });
 });
 
-app.listen(PORT, () => {
-  console.log(`[FinGame Server] Running at http://localhost:${PORT} ⚔️`);
-});
+app.listen(PORT, () => console.log(`[FinGame] http://localhost:${PORT} ⚔️`));

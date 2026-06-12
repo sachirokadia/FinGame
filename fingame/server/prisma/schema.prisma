@@ -23,6 +23,7 @@ model User {
   badges         UserBadge[]
   budgetHistory  BudgetHistory[]
   recurringExpenses RecurringExpense[]
+  categoryBudgets  CategoryBudget[]
 }
 
 model Expense {
@@ -96,4 +97,17 @@ model UserBadge {
   earnedAt  DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
   badge     Badge    @relation(fields: [badgeId], references: [id])
+}
+
+model CategoryBudget {
+  id        String   @id @default(cuid())
+  userId    String
+  category  String
+  amount    Float
+  month     Int
+  year      Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, category, month, year])
 }

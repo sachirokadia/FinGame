@@ -70,3 +70,14 @@ export type LeaderboardPlayer = {
   rank: number;
   isCurrentUser?: boolean;
 };
+
+export type CategoryBudget = {
+  id: string;
+  category: string;
+  amount: number;
+  month: number;
+  year: number;
+  spent: number;
+  remaining: number;
+  percentUsed: number;
+};

@@ -19,48 +19,54 @@ export const authAPI = {
 };
 
 export const userAPI = {
-  getProfile: () => api.get("/user/me"),
-  completeTour: () => api.post("/user/tour-complete"),
-  getBudget: () => api.get("/user/budget"),
-  updateBudget: (monthlyBudget: number) => api.put("/user/budget", { monthlyBudget }),
+  getProfile:       () => api.get("/user/me"),
+  completeTour:     () => api.post("/user/tour-complete"),
+  getBudget:        () => api.get("/user/budget"),
+  updateBudget:     (monthlyBudget: number) => api.put("/user/budget", { monthlyBudget }),
   getBudgetHistory: () => api.get("/user/budget-history"),
 };
 
 export const expensesAPI = {
-  getExpenses: () => api.get("/expenses"),
-  addExpense: (data: { amount: number; category: string; note?: string; date?: string }) =>
-    api.post("/expenses", data),
-  editExpense: (id: string, data: { amount?: number; category?: string; note?: string; date?: string }) =>
-    api.patch(`/expenses/${id}`, data),
-  deleteExpense: (id: string) => api.delete(`/expenses/${id}`),
+  getExpenses:  () => api.get("/expenses"),
+  addExpense:   (data: { amount: number; category: string; note?: string; date?: string }) => api.post("/expenses", data),
+  editExpense:  (id: string, data: { amount?: number; category?: string; note?: string; date?: string }) => api.patch(`/expenses/${id}`, data),
+  deleteExpense:(id: string) => api.delete(`/expenses/${id}`),
 };
 
 export const recurringAPI = {
-  getRecurring: () => api.get("/recurring"),
-  addRecurring: (data: { amount: number; category: string; note?: string; dayOfMonth: number }) =>
-    api.post("/recurring", data),
-  updateRecurring: (id: string, data: Partial<{ amount: number; category: string; note: string; dayOfMonth: number; active: boolean }>) =>
-    api.patch(`/recurring/${id}`, data),
+  getRecurring:    () => api.get("/recurring"),
+  addRecurring:    (data: { amount: number; category: string; note?: string; dayOfMonth: number }) => api.post("/recurring", data),
+  updateRecurring: (id: string, data: Partial<{ amount: number; category: string; note: string; dayOfMonth: number; active: boolean }>) => api.patch(`/recurring/${id}`, data),
   deleteRecurring: (id: string) => api.delete(`/recurring/${id}`),
-  processRecurring: () => api.post("/recurring/process"),
+  processRecurring:() => api.post("/recurring/process"),
+};
+
+export const categoryBudgetsAPI = {
+  getCategoryBudgets: (month?: number, year?: number) => {
+    const p = new URLSearchParams();
+    if (month) p.append("month", String(month));
+    if (year)  p.append("year",  String(year));
+    return api.get(`/category-budgets?${p.toString()}`);
+  },
+  upsertCategoryBudget: (data: { category: string; amount: number; month?: number; year?: number }) =>
+    api.put("/category-budgets", data),
+  deleteCategoryBudget: (id: string) => api.delete(`/category-budgets/${id}`),
 };
 
 export const questsAPI = {
-  getQuests: () => api.get("/quests"),
+  getQuests:           () => api.get("/quests"),
   updateQuestProgress: (id: string, progress: number) => api.post(`/quests/${id}/update`, { progress }),
 };
 
-export const badgesAPI = {
-  getBadges: () => api.get("/badges"),
-};
+export const badgesAPI  = { getBadges: () => api.get("/badges") };
 
 export const statsAPI = {
-  getWeeklyStats: () => api.get("/stats/weekly"),
+  getWeeklyStats:  () => api.get("/stats/weekly"),
   getMonthlyStats: (year?: number, month?: number) => {
-    const params = new URLSearchParams();
-    if (year) params.append("year", String(year));
-    if (month) params.append("month", String(month));
-    return api.get(`/stats/monthly?${params.toString()}`);
+    const p = new URLSearchParams();
+    if (year)  p.append("year",  String(year));
+    if (month) p.append("month", String(month));
+    return api.get(`/stats/monthly?${p.toString()}`);
   },
   getLeaderboard: () => api.get("/stats/leaderboard"),
 };
