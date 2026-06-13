@@ -9,27 +9,23 @@ const router = Router();
 router.get("/me", authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, name: true, level: true, xp: true, streak: true, tourCompleted: true, monthlyBudget: true },
     });
     if (!user) return res.status(404).json({ error: "User not found" });
-
-    const levelInfo = calculateLevel(user.xp);
-    return res.json({ ...user, ...levelInfo });
+    return res.json({ ...user, ...calculateLevel(user.xp) });
   } catch (error) {
     console.error("User me fetch error:", error);
     return res.status(500).json({ error: "Something went wrong" });
   }
 });
 
-// POST /api/user/tour-complete
+// POST /api/user/tour-complete  — BEFORE /:param routes
 router.post("/tour-complete", authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
   try {
     await prisma.user.update({ where: { id: userId }, data: { tourCompleted: true } });
     return res.json({ success: true });
@@ -39,11 +35,10 @@ router.post("/tour-complete", authMiddleware, async (req: AuthenticatedRequest, 
   }
 });
 
-// GET /api/user/budget
+// GET /api/user/budget  — BEFORE /:param routes
 router.get("/budget", authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
   try {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { monthlyBudget: true } });
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -60,36 +55,31 @@ router.put("/budget", authMiddleware, async (req: AuthenticatedRequest, res: Res
   const { monthlyBudget } = req.body;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-  if (monthlyBudget === undefined || monthlyBudget === null) {
+  if (monthlyBudget === undefined || monthlyBudget === null)
     return res.status(400).json({ error: "monthlyBudget is required" });
-  }
 
   const parsed = parseFloat(monthlyBudget);
-  if (isNaN(parsed) || parsed <= 0) {
+  if (isNaN(parsed) || parsed <= 0)
     return res.status(400).json({ error: "monthlyBudget must be a positive number" });
-  }
-  if (parsed > 10_000_000) {
+  if (parsed > 10_000_000)
     return res.status(400).json({ error: "monthlyBudget cannot exceed ₹1,00,00,000" });
-  }
 
   try {
-    const now = new Date();
+    const now   = new Date();
     const month = now.getMonth() + 1;
-    const year = now.getFullYear();
+    const year  = now.getFullYear();
 
-    // Upsert BudgetHistory for this month — one record per month
-    await prisma.budgetHistory.upsert({
-      where: {
-        // Use a compound unique workaround by checking first
-        id: (await prisma.budgetHistory.findFirst({ where: { userId, month, year } }))?.id ?? "new",
-      },
-      update: { amount: parsed, setAt: now },
-      create: { userId, amount: parsed, month, year },
-    });
+    // Fix: explicit findFirst then create/update — same pattern as categoryBudgets fix
+    const existingHistory = await prisma.budgetHistory.findFirst({ where: { userId, month, year } });
+    if (existingHistory) {
+      await prisma.budgetHistory.update({ where: { id: existingHistory.id }, data: { amount: parsed, setAt: now } });
+    } else {
+      await prisma.budgetHistory.create({ data: { userId, amount: parsed, month, year } });
+    }
 
     const updated = await prisma.user.update({
       where: { id: userId },
-      data: { monthlyBudget: parsed },
+      data:  { monthlyBudget: parsed },
       select: { monthlyBudget: true },
     });
 
@@ -100,11 +90,10 @@ router.put("/budget", authMiddleware, async (req: AuthenticatedRequest, res: Res
   }
 });
 
-// GET /api/user/budget-history
+// GET /api/user/budget-history  — BEFORE /:param routes
 router.get("/budget-history", authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
   try {
     const history = await prisma.budgetHistory.findMany({
       where: { userId },
