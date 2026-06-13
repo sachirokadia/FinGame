@@ -8,58 +8,55 @@ generator client {
 }
 
 model User {
-  id             String          @id @default(cuid())
-  email          String          @unique
-  name           String
-  password       String
-  level          Int             @default(1)
-  xp             Int             @default(0)
-  streak         Int             @default(0)
-  tourCompleted  Boolean         @default(false)
-  monthlyBudget  Float           @default(10000)
-  createdAt      DateTime        @default(now())
-  expenses       Expense[]
-  quests         UserQuest[]
-  badges         UserBadge[]
-  budgetHistory  BudgetHistory[]
-  recurringExpenses RecurringExpense[]
-  categoryBudgets  CategoryBudget[]
+  id              String          @id @default(cuid())
+  email           String          @unique
+  name            String
+  password        String
+  level           Int             @default(1)
+  xp              Int             @default(0)
+  streak          Int             @default(0)
+  tourCompleted   Boolean         @default(false)
+  monthlyBudget   Float           @default(10000)
+  createdAt       DateTime        @default(now())
+  expenses        Expense[]
+  quests          UserQuest[]
+  badges          UserBadge[]
+  budgetHistory   BudgetHistory[]
+  categoryBudgets CategoryBudget[]
 }
 
 model Expense {
-  id          String   @id @default(cuid())
-  userId      String
-  amount      Float
-  category    String
-  note        String?
-  date        DateTime @default(now())
-  xpAwarded   Int      @default(0)
-  isRecurring Boolean  @default(false)
-  recurringId String?
-  user        User     @relation(fields: [userId], references: [id])
-}
-
-model RecurringExpense {
-  id        String   @id @default(cuid())
-  userId    String
-  amount    Float
-  category  String
-  note      String?
-  dayOfMonth Int     // 1-28, day to auto-log each month
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  lastLoggedAt DateTime?
-  user      User     @relation(fields: [userId], references: [id])
+  id         String   @id @default(cuid())
+  userId     String
+  amount     Float
+  category   String
+  note       String?
+  date       DateTime @default(now())
+  xpAwarded  Int      @default(0)
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 model BudgetHistory {
   id        String   @id @default(cuid())
   userId    String
   amount    Float
-  month     Int      // 1-12
+  month     Int
   year      Int
   setAt     DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model CategoryBudget {
+  id        String   @id @default(cuid())
+  userId    String
+  category  String
+  amount    Float
+  month     Int
+  year      Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, category, month, year])
 }
 
 model Quest {
@@ -97,17 +94,4 @@ model UserBadge {
   earnedAt  DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
   badge     Badge    @relation(fields: [badgeId], references: [id])
-}
-
-model CategoryBudget {
-  id        String   @id @default(cuid())
-  userId    String
-  category  String
-  amount    Float
-  month     Int
-  year      Int
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-
-  @@unique([userId, category, month, year])
 }

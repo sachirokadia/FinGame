@@ -14,7 +14,7 @@ api.interceptors.request.use((config) => {
 }, (error) => Promise.reject(error));
 
 export const authAPI = {
-  login: (data: LoginCredentials) => api.post("/auth/login", data),
+  login:    (data: LoginCredentials)    => api.post("/auth/login", data),
   register: (data: RegisterCredentials) => api.post("/auth/register", data),
 };
 
@@ -27,22 +27,16 @@ export const userAPI = {
 };
 
 export const expensesAPI = {
-  getExpenses:  () => api.get("/expenses"),
-  addExpense:   (data: { amount: number; category: string; note?: string; date?: string }) => api.post("/expenses", data),
-  editExpense:  (id: string, data: { amount?: number; category?: string; note?: string; date?: string }) => api.patch(`/expenses/${id}`, data),
-  deleteExpense:(id: string) => api.delete(`/expenses/${id}`),
-};
-
-export const recurringAPI = {
-  getRecurring:    () => api.get("/recurring"),
-  addRecurring:    (data: { amount: number; category: string; note?: string; dayOfMonth: number }) => api.post("/recurring", data),
-  updateRecurring: (id: string, data: Partial<{ amount: number; category: string; note: string; dayOfMonth: number; active: boolean }>) => api.patch(`/recurring/${id}`, data),
-  deleteRecurring: (id: string) => api.delete(`/recurring/${id}`),
-  processRecurring:() => api.post("/recurring/process"),
+  getExpenses:   () => api.get("/expenses"),
+  addExpense:    (data: { amount: number; category: string; note?: string; date?: string }) =>
+    api.post("/expenses", data),
+  editExpense:   (id: string, data: { amount?: number; category?: string; note?: string; date?: string }) =>
+    api.patch(`/expenses/${id}`, data),
+  deleteExpense: (id: string) => api.delete(`/expenses/${id}`),
 };
 
 export const categoryBudgetsAPI = {
-  getCategoryBudgets: (month?: number, year?: number) => {
+  getCategoryBudgets:   (month?: number, year?: number) => {
     const p = new URLSearchParams();
     if (month) p.append("month", String(month));
     if (year)  p.append("year",  String(year));
@@ -55,7 +49,8 @@ export const categoryBudgetsAPI = {
 
 export const questsAPI = {
   getQuests:           () => api.get("/quests"),
-  updateQuestProgress: (id: string, progress: number) => api.post(`/quests/${id}/update`, { progress }),
+  updateQuestProgress: (id: string, progress: number) =>
+    api.post(`/quests/${id}/update`, { progress }),
 };
 
 export const badgesAPI  = { getBadges: () => api.get("/badges") };

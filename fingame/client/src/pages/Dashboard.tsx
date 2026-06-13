@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { expensesAPI, questsAPI, recurringAPI } from "../api";
+import { expensesAPI, questsAPI } from "../api";
 import { ExpenseItem } from "../components/ExpenseItem";
 import { QuestCard } from "../components/QuestCard";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import BudgetSetupModal from "../components/BudgetSetupModal";
 import BudgetHistoryModal from "../components/BudgetHistoryModal";
 import EditExpenseModal from "../components/EditExpenseModal";
-import RecurringExpensesModal from "../components/RecurringExpensesModal";
 import CategoryBudgetsModal from "../components/CategoryBudgetsModal";
 import SpendingAlert from "../components/SpendingAlert";
 import type { Expense, QuestData } from "../types";
@@ -21,21 +20,20 @@ import { exportExpensesToCSV } from "../utils/csvExport";
 
 const Dashboard: React.FC = () => {
   const { user, refreshProfile } = useAuth();
-  const [expenses, setExpenses]   = useState<Expense[]>([]);
-  const [quests, setQuests]       = useState<QuestData[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState<string | null>(null);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [quests, setQuests]     = useState<QuestData[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<string | null>(null);
 
   // Modals
   const [budgetModalOpen,   setBudgetModalOpen]   = useState(false);
   const [historyModalOpen,  setHistoryModalOpen]  = useState(false);
-  const [recurringModalOpen,setRecurringModalOpen]= useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingExpense,    setEditingExpense]     = useState<Expense | null>(null);
 
-  const monthlyBudget      = user?.monthlyBudget ?? 10000;
-  const now                = new Date();
-  const currentMonthName   = MONTH_NAMES[now.getMonth()];
+  const monthlyBudget    = user?.monthlyBudget ?? 10000;
+  const now              = new Date();
+  const currentMonthName = MONTH_NAMES[now.getMonth()];
 
   const loadData = useCallback(async () => {
     setError(null);
@@ -46,8 +44,6 @@ const Dashboard: React.FC = () => {
     } catch { setError("Could not load dashboard data. Is the server running?"); }
     finally { setLoading(false); }
   }, []);
-
-  useEffect(() => { recurringAPI.processRecurring().catch(() => {}); }, []);
 
   useEffect(() => {
     loadData();
@@ -68,10 +64,7 @@ const Dashboard: React.FC = () => {
       const d = new Date(e.date);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
-    exportExpensesToCSV(
-      currentMonthExpenses,
-      `fingame-${currentMonthName.toLowerCase()}-${now.getFullYear()}.csv`
-    );
+    exportExpensesToCSV(currentMonthExpenses, `fingame-${currentMonthName.toLowerCase()}-${now.getFullYear()}.csv`);
   };
 
   // Budget computations
@@ -153,10 +146,6 @@ const Dashboard: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high border border-white/10 text-on-surface font-label-caps text-label-caps hover:border-primary/50 active:scale-95 transition-all">
             <span className="material-symbols-outlined text-secondary">add</span>ADD EXPENSE
           </button>
-          <button onClick={() => setRecurringModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high border border-white/10 text-on-surface font-label-caps text-label-caps hover:border-secondary/50 active:scale-95 transition-all">
-            <span className="material-symbols-outlined text-secondary">repeat</span>RECURRING
-          </button>
           <button onClick={() => setCategoryModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-high border border-white/10 text-on-surface font-label-caps text-label-caps hover:border-primary/50 active:scale-95 transition-all">
             <span className="material-symbols-outlined text-primary">category</span>CAT BUDGETS
@@ -199,7 +188,6 @@ const Dashboard: React.FC = () => {
       {/* Modals */}
       <BudgetSetupModal isOpen={budgetModalOpen} onClose={() => setBudgetModalOpen(false)} onViewHistory={() => setHistoryModalOpen(true)} />
       <BudgetHistoryModal isOpen={historyModalOpen} onClose={() => setHistoryModalOpen(false)} currentBudget={monthlyBudget} />
-      <RecurringExpensesModal isOpen={recurringModalOpen} onClose={() => { setRecurringModalOpen(false); loadData(); }} />
       <CategoryBudgetsModal isOpen={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} />
       <EditExpenseModal expense={editingExpense} onClose={() => setEditingExpense(null)} onSaved={handleEditSaved} />
     </main>

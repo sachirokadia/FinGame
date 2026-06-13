@@ -18,17 +18,6 @@ export type Expense = {
   note: string | null;
   date: string;
   xpAwarded: number;
-  isRecurring?: boolean;
-};
-
-export type RecurringExpense = {
-  id: string;
-  amount: number;
-  category: string;
-  note: string | null;
-  dayOfMonth: number;
-  active: boolean;
-  lastLoggedAt: string | null;
 };
 
 export type BudgetHistory = {
@@ -37,6 +26,17 @@ export type BudgetHistory = {
   month: number;
   year: number;
   setAt: string;
+};
+
+export type CategoryBudget = {
+  id: string;
+  category: string;
+  amount: number;
+  month: number;
+  year: number;
+  spent: number;
+  remaining: number;
+  percentUsed: number;
 };
 
 export type QuestData = {
@@ -69,15 +69,4 @@ export type LeaderboardPlayer = {
   streak: number;
   rank: number;
   isCurrentUser?: boolean;
-};
-
-export type CategoryBudget = {
-  id: string;
-  category: string;
-  amount: number;
-  month: number;
-  year: number;
-  spent: number;
-  remaining: number;
-  percentUsed: number;
 };
